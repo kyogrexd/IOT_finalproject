@@ -17,14 +17,14 @@ class MQTTmanager (val connectionParams: MQTTConnectionParams, val context: Cont
 
         client.setCallback(object: MqttCallbackExtended {
             override fun connectComplete(b:Boolean, s:String) {
-                Log.w("mqtt", s)
+                Log.e("mqtt", s)
                 uiUpdater?.resetUIWithConnection(true)
             }
             override fun connectionLost(throwable:Throwable) {
                 uiUpdater?.resetUIWithConnection(false)
             }
             override fun messageArrived(topic:String, mqttMessage: MqttMessage) {
-                Log.w("Mqtt", mqttMessage.toString())
+                Log.e("Mqtt", mqttMessage.toString())
                 uiUpdater?.update(mqttMessage.toString())
             }
             override fun deliveryComplete(iMqttDeliveryToken: IMqttDeliveryToken) {
@@ -49,10 +49,9 @@ class MQTTmanager (val connectionParams: MQTTConnectionParams, val context: Cont
                     disconnectedBufferOptions.setDeleteOldestMessages(false)
                     client.setBufferOpts(disconnectedBufferOptions)
                     subscribe(params.topic)
-
                 }
                 override fun onFailure(asyncActionToken:IMqttToken, exception:Throwable) {
-                    Log.w("Mqtt", "Failed to connect to: " + params.host + exception.toString())
+                    Log.e("Mqtt", "Failed to connect to: " + params.host + exception.toString())
                 }
             })
         }

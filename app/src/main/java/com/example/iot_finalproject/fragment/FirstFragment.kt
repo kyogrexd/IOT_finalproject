@@ -25,13 +25,12 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mActivity = activity as MainActivity
-
-        resetUIWithConnection(false)
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
+        resetUIWithConnection(false)
         setListener()
     }
 
@@ -73,6 +72,7 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                     val connectionParams = MQTTConnectionParams("MQTTSample", host, topic, "", "")
 
                     mqttManager = MQTTmanager(connectionParams, mActivity, this@FirstFragment)
+                    mqttManager?.connect()
                 } else {
                     updateStatusViewWith("Please enter all valid fields")
                 }
