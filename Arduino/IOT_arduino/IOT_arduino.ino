@@ -10,9 +10,9 @@ const char *client_id = "client-test";
    
 // MQTT Broker
 const char *mqtt_broker = "broker.emqx.io";
-const char *topic = "esp8266/led";
-const char *mqtt_username = "test";
-const char *mqtt_password = "123";
+const char *topic = "mqtt";
+const char *mqtt_username = "";
+const char *mqtt_password = "";
 const int mqtt_port = 1883;
    
 WiFiClient espClient;
@@ -60,8 +60,8 @@ void callback(char *topic, byte *payload, unsigned int length) {
         message = message + (char) payload[i];  // convert *byte to string
     }
     Serial.print(message);
-    if (message == "on") { digitalWrite(LED, LOW); }   // LED on
-    if (message == "off") { digitalWrite(LED, HIGH); } // LED off
+//    if (message == "on") { digitalWrite(LED, LOW); }   // LED on
+//    if (message == "off") { digitalWrite(LED, HIGH); } // LED off
     Serial.println();
     Serial.println("-----------------------");
 }
