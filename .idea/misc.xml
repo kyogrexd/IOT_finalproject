@@ -3,8 +3,11 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/IOT_finalproject/app/src/main/res/drawable/btn_turn_off.xml" value="0.28854166666666664" />
+        <entry key="..\:/IOT_finalproject/app/src/main/res/drawable/btn_turn_on.xml" value="0.28854166666666664" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/layout/activity_main.xml" value="0.19157608695652173" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/layout/fragment_first.xml" value="0.25" />
+        <entry key="..\:/IOT_finalproject/app/src/main/res/layout/fragment_second.xml" value="0.33" />
       </map>
     </option>
   </component>

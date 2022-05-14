@@ -1,7 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-#define LED 1 
+#define sensor 1 
    
 // WiFi
 const char *ssid = "mmslab_smallRoom"; // Enter your WiFi name
@@ -20,7 +20,7 @@ PubSubClient client(espClient);
    
 void setup() {
   
-   pinMode(LED, OUTPUT);
+   pinMode(sensor, INPUT);
   
     // Set software serial baud to 115200;
     Serial.begin(115200);
@@ -67,5 +67,10 @@ void callback(char *topic, byte *payload, unsigned int length) {
 }
    
 void loop() {
-    client.loop();
+    //client.loop();
+
+    int moving = digitalRead(sensor); //讀取D9是否有偵測到物體移動
+    if(moving==1){ //如果有物體移動
+      Serial.println("有東西在動！");  
+    }
 }

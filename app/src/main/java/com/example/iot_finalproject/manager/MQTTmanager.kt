@@ -41,6 +41,7 @@ class MQTTmanager (val connectionParams: MQTTConnectionParams, val context: Cont
             var params = this.connectionParams
             client?.connect(mqttConnectOptions, null, object: IMqttActionListener {
                 override fun onSuccess(asyncActionToken:IMqttToken) {
+                    Log.e("Mqtt", "Success to connect")
                     val disconnectedBufferOptions = DisconnectedBufferOptions()
                     disconnectedBufferOptions.setBufferEnabled(true)
                     disconnectedBufferOptions.setBufferSize(100)
