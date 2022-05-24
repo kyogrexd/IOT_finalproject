@@ -1,26 +1,30 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
-#define sensor 1 
+int PIRSensor = 16;
+int count = 0;
    
 // WiFi
-const char *ssid = "mmslab_smallRoom"; // Enter your WiFi name
-const char *password = "mmslab406";  // Enter WiFi password
+const char *ssid = "1234"; // Enter your WiFi name
+const char *password = "jk871124";  // Enter WiFi password
 const char *client_id = "client-test";
    
 // MQTT Broker
 const char *mqtt_broker = "broker.emqx.io";
-const char *topic = "mqtt";
+const char *topic = "mqttTest";
 const char *mqtt_username = "";
 const char *mqtt_password = "";
 const int mqtt_port = 1883;
    
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+DynamicJsonDocument doc(1024);
    
 void setup() {
   
-   pinMode(sensor, INPUT);
+   pinMode(PIRSensor, INPUT);
   
     // Set software serial baud to 115200;
     Serial.begin(115200);
@@ -52,6 +56,7 @@ void setup() {
 }
    
 void callback(char *topic, byte *payload, unsigned int length) {
+    Serial.println("-----------------------");
     Serial.print("Message arrived in topic: ");
     Serial.println(topic);
     Serial.print("Message:");
@@ -59,7 +64,14 @@ void callback(char *topic, byte *payload, unsigned int length) {
     for (int i = 0; i < length; i++) {
         message = message + (char) payload[i];  // convert *byte to string
     }
-    Serial.print(message);
+    Serial.println(message);
+
+    deserializeJson(doc, message);
+    boolean isTurnOn = doc["isTurnOn"].as<boolean>();
+    int speed = doc["speed"].as<int>();
+    Serial.println(isTurnOn);
+    Serial.println(speed);
+    
 //    if (message == "on") { digitalWrite(LED, LOW); }   // LED on
 //    if (message == "off") { digitalWrite(LED, HIGH); } // LED off
     Serial.println();
@@ -67,10 +79,12 @@ void callback(char *topic, byte *payload, unsigned int length) {
 }
    
 void loop() {
-    //client.loop();
-
-    int moving = digitalRead(sensor); //讀取D9是否有偵測到物體移動
-    if(moving==1){ //如果有物體移動
-      Serial.println("有東西在動！");  
+    client.loop();
+    
+    int moving = digitalRead(PIRSensor); //讀取Sensor是否有偵測到物體移動
+    if(moving == HIGH){ //如果有物體移動
+      //count ++;
+      //Serial.println(count);
+      //client.publish(topic, "plus");
     }
 }

@@ -19,6 +19,7 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
     lateinit var mActivity: MainActivity
     private var mqttManager: MQTTmanager? = null
     private var isTurnOn = false
+    private var count = 0
 
     data class Data(val isTurnOn: Boolean, val speed: Int)
 
@@ -61,10 +62,15 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
 
     override fun update(message: String) {
         binding?.run {
-            val text = tvMessageHistory.text.toString()
-            var newText = "$text\n$message"
 
-            tvMessageHistory.text = newText
+            if (message == "plus") {
+                count ++
+                tvCount.text = count.toString()
+            }
+//            val text = tvMessageHistory.text.toString()
+//            var newText = "$text\n$message"
+//
+//            tvMessageHistory.text = newText
         }
     }
 
@@ -72,7 +78,7 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
         binding?.run {
             tvConnect.setOnClickListener {
                 val host = "tcp://broker.emqx.io:1883"
-                val topic = "mqttConnect"
+                val topic = "mqttTest"
                 val connectionParams = MQTTConnectionParams("MQTTSample", host, topic, "", "")
 
                 mqttManager = MQTTmanager(connectionParams, mActivity, this@FirstFragment)
