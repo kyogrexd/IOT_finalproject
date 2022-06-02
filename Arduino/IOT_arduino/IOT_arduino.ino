@@ -1,13 +1,23 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <IRremote.h>
 
-int PIRSensor = 16;
+
 int count = 0;
-   
+boolean isTurnOn = false;
+boolean isAuto = false;
+int speeds = 0;
+int state = LOW;
+int val = 0;
+
+int motorPin = 12;
+int PIRSensorIn = 16;
+int PIRSensorOut = 5;
+
 // WiFi
-const char *ssid = "1234"; // Enter your WiFi name
-const char *password = "jk871124";  // Enter WiFi password
+const char *ssid = "mmslab_smallRoom"; // Enter your WiFi name
+const char *password = "mmslab406";  // Enter WiFi password
 const char *client_id = "client-test";
    
 // MQTT Broker
@@ -23,11 +33,17 @@ PubSubClient client(espClient);
 DynamicJsonDocument doc(1024);
    
 void setup() {
-  
-   pinMode(PIRSensor, INPUT);
-  
-    // Set software serial baud to 115200;
-    Serial.begin(115200);
+    
+    Serial.begin(9600);
+    pinMode(Led, OUTPUT);
+    pinMode(PIRSensor, INPUT);
+//    irrecv.enableIRIn(); // Start the receiver
+//    Serial.println("IR Receiver Ready...");
+//    Serial.println(F("Enabling IRin"));
+//    IrReceiver.begin(IR_RECEIVE_PIN,ENABLE_LED_FEEDBACK);
+//    Serial.print(F("Ready to receive IR signals at pin "));
+//    Serial.println(IR_RECEIVE_PIN);
+    
     // connecting to a WiFi network
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED) {
@@ -51,7 +67,12 @@ void setup() {
         }
     }
     // publish and subscribe
-    client.publish(topic, "hello emqx");
+    doc["isTurnOn"] = false;
+    doc["speed"] = 0;
+    doc["count"] = 0;
+    char json[256];
+    serializeJson(doc, json);
+    client.publish(topic, json);
     client.subscribe(topic);
 }
    
@@ -67,24 +88,84 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Serial.println(message);
 
     deserializeJson(doc, message);
-    boolean isTurnOn = doc["isTurnOn"].as<boolean>();
-    int speed = doc["speed"].as<int>();
-    Serial.println(isTurnOn);
-    Serial.println(speed);
+    isTurnOn = doc["isTurnOn"].as<boolean>();
+    speeds = doc["speed"].as<int>();
+    count = doc["count"].as<int>();
     
-//    if (message == "on") { digitalWrite(LED, LOW); }   // LED on
-//    if (message == "off") { digitalWrite(LED, HIGH); } // LED off
-    Serial.println();
     Serial.println("-----------------------");
 }
    
 void loop() {
     client.loop();
+
+    //風扇控制
+    if (isAuto) {
+      if (count <= 2) {
+      analogWrite(motorPin, 0);
+      } else if (2 < count <= 4) {
+        analogWrite(motorPin, 127);
+        isTurnOn = true;
+      } else if (count <= 5) {
+        analogWrite(motorPin, 255);
+        isTurnOn = true;
+      }
+    } else {
+      if (isTurnOn){
+        analogWrite(Led, speeds);
+      } else {
+        analogWrite(Led, 0);
+      }
+    }
     
-    int moving = digitalRead(PIRSensor); //讀取Sensor是否有偵測到物體移動
-    if(moving == HIGH){ //如果有物體移動
-      //count ++;
-      //Serial.println(count);
-      //client.publish(topic, "plus");
+    //進門
+    enter = digitalRead(PIRSensorIn); //讀取Sensor是否有偵測到物體移動
+    if(enter == HIGH){ //如果有物體移動
+      delay(500);
+
+      if (state == LOW){
+        count ++;
+        Serial.print("偵測進門");
+
+        doc["isTurnOn"] = isTurnOn;
+        doc["speed"] = speeds;
+        doc["count"] = count;
+        char json[256];
+        serializeJson(doc, json);
+        client.publish(topic, json);
+        state = HIGH;
+      }
+    } else {
+      delay(500);
+
+      if (state == HIGH) {
+        Serial.println("-------");
+        state = LOW;
+      }
+    }
+
+    //出門
+    enter = digitalRead(PIRSensorOut); //讀取Sensor是否有偵測到物體移動
+    if(enter == HIGH){ //如果有物體移動
+      delay(500);
+
+      if (state == LOW){
+        count ++;
+        Serial.print("偵測出門");
+
+        doc["isTurnOn"] = isTurnOn;
+        doc["speed"] = speeds;
+        doc["count"] = count;
+        char json[256];
+        serializeJson(doc, json);
+        client.publish(topic, json);
+        state = HIGH;
+      }
+    } else {
+      delay(500);
+
+      if (state == HIGH) {
+        Serial.println("=======");
+        state = LOW;
+      }
     }
 }

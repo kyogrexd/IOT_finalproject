@@ -4,6 +4,8 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/layout/fragment_first.xml" value="0.22" />
+        <entry key="..\:/IOT_finalproject/app/src/main/res/drawable-v24/btn_blue.xml" value="0.28854166666666664" />
+        <entry key="..\:/IOT_finalproject/app/src/main/res/drawable-v24/btn_gray.xml" value="0.28854166666666664" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/drawable/btn_turn_off.xml" value="0.28854166666666664" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/drawable/btn_turn_on.xml" value="0.28854166666666664" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/layout/activity_main.xml" value="0.19157608695652173" />
@@ -12,7 +14,7 @@
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" project-jdk-name="11" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">

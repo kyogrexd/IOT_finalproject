@@ -19,9 +19,15 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
     lateinit var mActivity: MainActivity
     private var mqttManager: MQTTmanager? = null
     private var isTurnOn = false
+    private var isAuto = true
     private var count = 0
+    private var speed = 0
+    private var btnType = BtnType.OFF
 
-    data class Data(val isTurnOn: Boolean, val speed: Int)
+    data class DataReq(val isAuto: Boolean, val isTurnOn: Boolean, val speed: Int)
+    data class DataRes(val isTurnOn: Boolean, val speed: Int, val count: Int)
+
+    enum class BtnType {OFF, LOW, MID, HIGH}
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentFirstBinding.inflate(inflater, container, false)
@@ -47,12 +53,17 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
             tvDisconnect.isEnabled = status
             tvSend.isEnabled = status
             tvSwitch.isEnabled = status
-        }
-        //更新狀態顯示
-        if (status){
-            updateStatusViewWith("Connected")
-        } else {
-            updateStatusViewWith("Disconnected")
+
+            //更新狀態顯示
+            if (status){
+                updateStatusViewWith("Connected")
+                tvConnect.visibility = View.GONE
+                gpConsole.visibility = View.VISIBLE
+            } else {
+                updateStatusViewWith("Disconnected")
+                tvConnect.visibility = View.VISIBLE
+                gpConsole.visibility = View.GONE
+            }
         }
     }
 
@@ -63,14 +74,22 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
     override fun update(message: String) {
         binding?.run {
 
-            if (message == "plus") {
-                count ++
-                tvCount.text = count.toString()
+            val res = Gson().fromJson(message, DataRes::class.java)
+            count = res.count
+            isTurnOn = res.isTurnOn
+            speed = res.speed
+            if (!isAuto) {
+                when (speed) {
+                    0 -> btnType = BtnType.OFF
+                    64 -> btnType = BtnType.LOW
+                    128 -> btnType = BtnType.MID
+                    255 -> btnType = BtnType.HIGH
+                }
+
+                changeButtonStyle(btnType)
             }
-//            val text = tvMessageHistory.text.toString()
-//            var newText = "$text\n$message"
-//
-//            tvMessageHistory.text = newText
+            tvCount.text = "目前人數:$count"
+            tvFan.text = if(isTurnOn) "風扇狀態: ON" else "風扇狀態: OFF"
         }
     }
 
@@ -89,28 +108,55 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 mqttManager?.disconnect()
             }
 
-            tvSend.setOnClickListener {
-//                val json  = Gson().toJson(User("kyogre", 20))
-//                mqttManager?.publish(json.toString())
-//
-//                edMessage.setText("")
+            tvSwitch.setOnClickListener {
+                isAuto = !isAuto
+                tvSwitch.setBackgroundResource(if (isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
+                tvSwitch.text = if (isAuto) "MANUAL" else "AUTO"
+                llConsole.visibility = if (isAuto) View.GONE else View.VISIBLE
+                changeButtonStyle(btnType)
             }
 
-            tvSwitch.setOnClickListener {
-                isTurnOn = !isTurnOn
-                if (isTurnOn) {
-                    tvSwitch.setBackgroundResource(R.drawable.btn_turn_off)
-                    tvSwitch.text = "OFF"
-                    val json = Gson().toJson(Data(isTurnOn, 1000))
-                    mqttManager?.publish(json.toString())
-
-                } else {
-                    tvSwitch.setBackgroundResource(R.drawable.btn_turn_on)
-                    tvSwitch.text = "ON"
-                    val json = Gson().toJson(Data(isTurnOn, 0))
-                    mqttManager?.publish(json.toString())
-                }
+            tvOff.setOnClickListener {
+                btnType = BtnType.OFF
+                changeButtonStyle(btnType)
+                val json = Gson().toJson(DataReq(false, false, 0))
+                mqttManager?.publish(json.toString())
+            }
+            tvLow.setOnClickListener {
+                btnType = BtnType.LOW
+                changeButtonStyle(btnType)
+                val json = Gson().toJson(DataReq(false, true, 64))
+                mqttManager?.publish(json.toString())
+            }
+            tvMid.setOnClickListener {
+                btnType = BtnType.MID
+                changeButtonStyle(btnType)
+                val json = Gson().toJson(DataReq(false, true, 128))
+                mqttManager?.publish(json.toString())
+            }
+            tvHigh.setOnClickListener {
+                btnType = BtnType.HIGH
+                changeButtonStyle(btnType)
+                val json = Gson().toJson(DataReq(false, true, 255))
+                mqttManager?.publish(json.toString())
             }
         }
     }
+
+    private fun changeButtonStyle(btnType: BtnType) {
+        binding?.run {
+            tvOff.setBackgroundResource(R.drawable.btn_gray)
+            tvLow.setBackgroundResource(R.drawable.btn_gray)
+            tvMid.setBackgroundResource(R.drawable.btn_gray)
+            tvHigh.setBackgroundResource(R.drawable.btn_gray)
+
+            when (btnType) {
+                BtnType.OFF -> tvOff.setBackgroundResource(R.drawable.btn_blue)
+                BtnType.LOW -> tvLow.setBackgroundResource(R.drawable.btn_blue)
+                BtnType.MID -> tvMid.setBackgroundResource(R.drawable.btn_blue)
+                BtnType.HIGH -> tvHigh.setBackgroundResource(R.drawable.btn_blue)
+            }
+        }
+    }
+
 }
