@@ -3,7 +3,16 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
-        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/layout/fragment_first.xml" value="0.22" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable-v24/btn_blue.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable-v24/btn_gray.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/btn_blue.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/btn_blue2.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/btn_green.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/btn_red.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/frame_white.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/frame_white2.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/drawable/frame_white3.xml" value="0.355" />
+        <entry key="..\:/GitHub/IOT_finalproject/app/src/main/res/layout/fragment_first.xml" value="0.33" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/drawable-v24/btn_blue.xml" value="0.28854166666666664" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/drawable-v24/btn_gray.xml" value="0.28854166666666664" />
         <entry key="..\:/IOT_finalproject/app/src/main/res/drawable/btn_turn_off.xml" value="0.28854166666666664" />

@@ -1,17 +1,29 @@
 package com.example.iot_finalproject.fragment
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.iot_finalproject.MainActivity
 import com.example.iot_finalproject.R
+import com.example.iot_finalproject.TimerService
+import com.example.iot_finalproject.ViewAnimation
 import com.example.iot_finalproject.databinding.FragmentFirstBinding
 import com.example.iot_finalproject.manager.MQTTConnectionParams
 import com.example.iot_finalproject.manager.MQTTmanager
 import com.example.iot_finalproject.protocols.UIUpdaterInterface
 import com.google.gson.Gson
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 class FirstFragment: Fragment(), UIUpdaterInterface {
     private var binding: FragmentFirstBinding? = null
@@ -23,11 +35,30 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
     private var count = 0
     private var speed = 0
     private var btnType = BtnType.OFF
+    private lateinit var timerIntent: Intent
+    private var time = ""
 
-    data class DataReq(val isAuto: Boolean, val isTurnOn: Boolean, val speed: Int)
-    data class DataRes(val isTurnOn: Boolean, val speed: Int, val count: Int)
+    data class Data(val isAuto: Boolean, val isTurnOn: Boolean, val speed: Int, val count: Int)
 
     enum class BtnType {OFF, LOW, MID, HIGH}
+
+    private val updateTime: BroadcastReceiver = object: BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val currentTime = intent.getIntExtra(TimerService.TIME_EXTRA, 0)
+            Log.e("FirestFragment", "Waiting Timer: $currentTime sec")
+            val timeLeft = (time.toInt() - currentTime).toString()
+            Toast.makeText(mActivity, "$timeLeft sec", Toast.LENGTH_SHORT).show()
+            binding?.edTimer?.setText(timeLeft)
+            if (currentTime == time.toInt()) {
+                val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
+                mqttManager?.publish(json.toString())
+                mActivity.stopService(timerIntent)
+                binding?.edTimer?.setText("")
+                binding?.edTimer?.isEnabled = true
+                Toast.makeText(mActivity, "計時結束", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = FragmentFirstBinding.inflate(inflater, container, false)
@@ -39,10 +70,18 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
         mActivity = activity as MainActivity
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        mActivity.unregisterReceiver (updateTime)
+        mActivity.stopService(timerIntent)
+    }
+
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
         resetUIWithConnection(false)
+        timerIntent = Intent(mActivity, TimerService::class.java)
+        mActivity.registerReceiver(updateTime, IntentFilter(TimerService.TIMER_UPDATED))
         setListener()
     }
 
@@ -57,12 +96,17 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
             //更新狀態顯示
             if (status){
                 updateStatusViewWith("Connected")
-                tvConnect.visibility = View.GONE
-                gpConsole.visibility = View.VISIBLE
+                gpInit.visibility = View.GONE
+                gpDisplay.visibility = View.VISIBLE
+                clConsoles.visibility = if (isAuto) View.GONE else View.VISIBLE
+                tvSwitch.setBackgroundResource(if (isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
+                tvSwitch.text = if (isAuto) "MANUAL" else "AUTO"
             } else {
                 updateStatusViewWith("Disconnected")
-                tvConnect.visibility = View.VISIBLE
-                gpConsole.visibility = View.GONE
+                gpInit.visibility = View.VISIBLE
+                gpDisplay.visibility = View.GONE
+                clConsoles.visibility = View.GONE
+                updateDisplayStatus()
             }
         }
     }
@@ -74,22 +118,37 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
     override fun update(message: String) {
         binding?.run {
 
-            val res = Gson().fromJson(message, DataRes::class.java)
+            val res = Gson().fromJson(message, Data::class.java)
             count = res.count
             isTurnOn = res.isTurnOn
             speed = res.speed
             if (!isAuto) {
-                when (speed) {
-                    0 -> btnType = BtnType.OFF
-                    64 -> btnType = BtnType.LOW
-                    128 -> btnType = BtnType.MID
-                    255 -> btnType = BtnType.HIGH
-                }
+                if (speed == 0) btnType = BtnType.OFF
+                else if (speed in 1..150) btnType = BtnType.LOW
+                else if (speed in 150..200) btnType = BtnType.MID
+                else btnType = BtnType.HIGH
 
                 changeButtonStyle(btnType)
             }
-            tvCount.text = "目前人數:$count"
+            updateDisplayStatus()
+        }
+    }
+
+    private fun updateDisplayStatus() {
+        binding?.run {
+            tvCount.text = "$count"
+            tvCount.setTextColor(mActivity.getColor(
+                if (count <= 2) R.color.blue_4A8FE1
+                else if (count in 3..4) R.color.green_4ECF6A
+                else R.color.red_FF0000))
+
             tvFan.text = if(isTurnOn) "風扇狀態: ON" else "風扇狀態: OFF"
+            tvSpeed.text = when (btnType) {
+                BtnType.LOW -> "風扇強度: 弱"
+                BtnType.MID -> "風扇強度: 中"
+                BtnType.HIGH -> "風扇強度: 強"
+                else -> "風扇強度: OFF"
+            }
         }
     }
 
@@ -102,9 +161,16 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
 
                 mqttManager = MQTTmanager(connectionParams, mActivity, this@FirstFragment)
                 mqttManager?.connect()
+                isAuto = true
             }
 
             tvDisconnect.setOnClickListener {
+                isAuto = true
+                isTurnOn = false
+                speed = 0
+                count = 0
+                val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
+                mqttManager?.publish(json.toString())
                 mqttManager?.disconnect()
             }
 
@@ -112,33 +178,49 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 isAuto = !isAuto
                 tvSwitch.setBackgroundResource(if (isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
                 tvSwitch.text = if (isAuto) "MANUAL" else "AUTO"
-                llConsole.visibility = if (isAuto) View.GONE else View.VISIBLE
+                clConsoles.visibility = if (isAuto) View.GONE else View.VISIBLE
                 changeButtonStyle(btnType)
+
+                val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
+                mqttManager?.publish(json.toString())
             }
 
             tvOff.setOnClickListener {
                 btnType = BtnType.OFF
                 changeButtonStyle(btnType)
-                val json = Gson().toJson(DataReq(false, false, 0))
+                val json = Gson().toJson(Data(false, false, 0, count))
                 mqttManager?.publish(json.toString())
             }
             tvLow.setOnClickListener {
                 btnType = BtnType.LOW
                 changeButtonStyle(btnType)
-                val json = Gson().toJson(DataReq(false, true, 64))
-                mqttManager?.publish(json.toString())
+                speed = 150
             }
             tvMid.setOnClickListener {
                 btnType = BtnType.MID
                 changeButtonStyle(btnType)
-                val json = Gson().toJson(DataReq(false, true, 128))
-                mqttManager?.publish(json.toString())
+                speed = 200
             }
             tvHigh.setOnClickListener {
                 btnType = BtnType.HIGH
                 changeButtonStyle(btnType)
-                val json = Gson().toJson(DataReq(false, true, 255))
-                mqttManager?.publish(json.toString())
+                speed = 255
+            }
+            tvOk.setOnClickListener {
+                  if (!edTimer.text.isNullOrEmpty() && edTimer.text.isNotBlank()) {
+                      val p: Pattern = Pattern.compile("[0-9]*")
+                      val m: Matcher = p.matcher(edTimer.text.toString())
+                      if (m.matches()) {
+                          Toast.makeText(mActivity, "計時開始", Toast.LENGTH_SHORT).show()
+                          time = edTimer.text.toString()
+                          timerIntent.putExtra(TimerService.TIME_EXTRA, 0)
+                          mActivity.startService(timerIntent)
+                          edTimer.isEnabled = false
+                      } else Toast.makeText(mActivity, "僅能輸入數字", Toast.LENGTH_SHORT).show()
+                  } else {
+                      val json = Gson().toJson(Data(false, true, speed, count))
+                      mqttManager?.publish(json.toString())
+                  }
             }
         }
     }
@@ -158,5 +240,4 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
             }
         }
     }
-
 }

@@ -15,7 +15,8 @@
         android:theme="@style/Theme.IOT_finalproject">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -24,6 +25,7 @@
         </activity>
 
         <service android:name="org.eclipse.paho.android.service.MqttService" />
+        <service android:name=".TimerService"/>
 
     </application>
 

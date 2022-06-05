@@ -1,14 +1,14 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include <IRremote.h>
 
 
 int count = 0;
 boolean isTurnOn = false;
-boolean isAuto = false;
+boolean isAuto = true;
 int speeds = 0;
 int state = LOW;
+int state2 = LOW;
 int val = 0;
 
 int motorPin = 12;
@@ -16,8 +16,8 @@ int PIRSensorIn = 16;
 int PIRSensorOut = 5;
 
 // WiFi
-const char *ssid = "mmslab_smallRoom"; // Enter your WiFi name
-const char *password = "mmslab406";  // Enter WiFi password
+const char *ssid = "1234"; // Enter your WiFi name
+const char *password = "jk871124";  // Enter WiFi password
 const char *client_id = "client-test";
    
 // MQTT Broker
@@ -29,20 +29,13 @@ const int mqtt_port = 1883;
    
 WiFiClient espClient;
 PubSubClient client(espClient);
-
 DynamicJsonDocument doc(1024);
    
 void setup() {
     
     Serial.begin(9600);
-    pinMode(Led, OUTPUT);
-    pinMode(PIRSensor, INPUT);
-//    irrecv.enableIRIn(); // Start the receiver
-//    Serial.println("IR Receiver Ready...");
-//    Serial.println(F("Enabling IRin"));
-//    IrReceiver.begin(IR_RECEIVE_PIN,ENABLE_LED_FEEDBACK);
-//    Serial.print(F("Ready to receive IR signals at pin "));
-//    Serial.println(IR_RECEIVE_PIN);
+    pinMode(motorPin, OUTPUT);
+    pinMode(PIRSensorIn, INPUT);
     
     // connecting to a WiFi network
     WiFi.begin(ssid, password);
@@ -88,44 +81,55 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Serial.println(message);
 
     deserializeJson(doc, message);
+    isAuto = doc["isAuto"].as<boolean>();
     isTurnOn = doc["isTurnOn"].as<boolean>();
     speeds = doc["speed"].as<int>();
     count = doc["count"].as<int>();
     
     Serial.println("-----------------------");
 }
+
+void controlFan(){
+  //風扇控制
+  if (isAuto) {
+    if (count <= 2) {
+      speeds = 0;
+      isTurnOn = false;
+    } else if (count > 2 && count <= 4) {
+      speeds = 150;
+      isTurnOn = true;
+    } else if (count > 4 && count <= 6){
+      speeds = 200;
+      isTurnOn = true;
+    } else {
+      speeds = 255;
+      isTurnOn = true;
+    }
+    analogWrite(motorPin, speeds);
+  } else {
+    if (isTurnOn){
+      analogWrite(motorPin, speeds);
+    } else {
+      analogWrite(motorPin, 0);
+    }
+  }
+}
    
 void loop() {
     client.loop();
 
-    //風扇控制
-    if (isAuto) {
-      if (count <= 2) {
-      analogWrite(motorPin, 0);
-      } else if (2 < count <= 4) {
-        analogWrite(motorPin, 127);
-        isTurnOn = true;
-      } else if (count <= 5) {
-        analogWrite(motorPin, 255);
-        isTurnOn = true;
-      }
-    } else {
-      if (isTurnOn){
-        analogWrite(Led, speeds);
-      } else {
-        analogWrite(Led, 0);
-      }
-    }
+    controlFan();
     
     //進門
-    enter = digitalRead(PIRSensorIn); //讀取Sensor是否有偵測到物體移動
+    int enter = digitalRead(PIRSensorIn); //讀取Sensor是否有偵測到物體移動
     if(enter == HIGH){ //如果有物體移動
-      delay(500);
-
       if (state == LOW){
         count ++;
-        Serial.print("偵測進門");
+        Serial.println("偵測進門");
 
+        controlFan();
+
+        doc["isAuto"] = isAuto;
         doc["isTurnOn"] = isTurnOn;
         doc["speed"] = speeds;
         doc["count"] = count;
@@ -135,37 +139,37 @@ void loop() {
         state = HIGH;
       }
     } else {
-      delay(500);
-
       if (state == HIGH) {
-        Serial.println("-------");
+        Serial.println("________________");
         state = LOW;
       }
     }
 
     //出門
-    enter = digitalRead(PIRSensorOut); //讀取Sensor是否有偵測到物體移動
-    if(enter == HIGH){ //如果有物體移動
-      delay(500);
-
-      if (state == LOW){
-        count ++;
+    int out = digitalRead(PIRSensorOut); //讀取Sensor是否有偵測到物體移動
+    if(out == HIGH){ //如果有物體移動
+      if (state2 == LOW){
+        if (count > 0) {
+          count --;
+        }
+        
         Serial.print("偵測出門");
 
+        controlFan();
+
+        doc["isAuto"] = isAuto;
         doc["isTurnOn"] = isTurnOn;
         doc["speed"] = speeds;
         doc["count"] = count;
         char json[256];
         serializeJson(doc, json);
         client.publish(topic, json);
-        state = HIGH;
+        state2 = HIGH;
       }
     } else {
-      delay(500);
-
-      if (state == HIGH) {
-        Serial.println("=======");
-        state = LOW;
+      if (state2 == HIGH) {
+        Serial.println("===================");
+        state2 = LOW;
       }
     }
 }
