@@ -47,7 +47,6 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
             val currentTime = intent.getIntExtra(TimerService.TIME_EXTRA, 0)
             Log.e("FirestFragment", "Waiting Timer: $currentTime sec")
             val timeLeft = (time.toInt() - currentTime).toString()
-            Toast.makeText(mActivity, "$timeLeft sec", Toast.LENGTH_SHORT).show()
             binding?.edTimer?.setText(timeLeft)
             if (currentTime == time.toInt()) {
                 val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
@@ -55,6 +54,7 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 mActivity.stopService(timerIntent)
                 binding?.edTimer?.setText("")
                 binding?.edTimer?.isEnabled = true
+                binding?.tvOk?.isEnabled = true
                 Toast.makeText(mActivity, "計時結束", Toast.LENGTH_SHORT).show()
             }
         }
@@ -80,8 +80,6 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
         super.onActivityCreated(savedInstanceState)
 
         resetUIWithConnection(false)
-        timerIntent = Intent(mActivity, TimerService::class.java)
-        mActivity.registerReceiver(updateTime, IntentFilter(TimerService.TIMER_UPDATED))
         setListener()
     }
 
@@ -99,8 +97,8 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 gpInit.visibility = View.GONE
                 gpDisplay.visibility = View.VISIBLE
                 clConsoles.visibility = if (isAuto) View.GONE else View.VISIBLE
-                tvSwitch.setBackgroundResource(if (isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
-                tvSwitch.text = if (isAuto) "MANUAL" else "AUTO"
+                tvSwitch.setBackgroundResource(if (!isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
+                tvSwitch.text = if (!isAuto) "MANUAL" else "AUTO"
             } else {
                 updateStatusViewWith("Disconnected")
                 gpInit.visibility = View.VISIBLE
@@ -121,15 +119,8 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
             val res = Gson().fromJson(message, Data::class.java)
             count = res.count
             isTurnOn = res.isTurnOn
-            speed = res.speed
-            if (!isAuto) {
-                if (speed == 0) btnType = BtnType.OFF
-                else if (speed in 1..150) btnType = BtnType.LOW
-                else if (speed in 150..200) btnType = BtnType.MID
-                else btnType = BtnType.HIGH
+            if (isAuto) speed = res.speed
 
-                changeButtonStyle(btnType)
-            }
             updateDisplayStatus()
         }
     }
@@ -138,8 +129,9 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
         binding?.run {
             tvCount.text = "$count"
             tvCount.setTextColor(mActivity.getColor(
-                if (count <= 2) R.color.blue_4A8FE1
-                else if (count in 3..4) R.color.green_4ECF6A
+                if (count <= 2) R.color.gray_C4C4C4
+                else if (count in 3..4) R.color.blue_4A8FE1
+                else if (count in 5..6) R.color.green_4ECF6A
                 else R.color.red_FF0000))
 
             tvFan.text = if(isTurnOn) "風扇狀態: ON" else "風扇狀態: OFF"
@@ -161,7 +153,14 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
 
                 mqttManager = MQTTmanager(connectionParams, mActivity, this@FirstFragment)
                 mqttManager?.connect()
+
                 isAuto = true
+                isTurnOn = false
+                speed = 0
+                count = 0
+
+                timerIntent = Intent(mActivity, TimerService::class.java)
+                mActivity.registerReceiver(updateTime, IntentFilter(TimerService.TIMER_UPDATED))
             }
 
             tvDisconnect.setOnClickListener {
@@ -169,15 +168,22 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 isTurnOn = false
                 speed = 0
                 count = 0
+
                 val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
                 mqttManager?.publish(json.toString())
                 mqttManager?.disconnect()
+
+                mActivity.unregisterReceiver (updateTime)
+                mActivity.stopService(timerIntent)
+                binding?.edTimer?.setText("")
+                binding?.edTimer?.isEnabled = true
+                binding?.tvOk?.isEnabled = true
             }
 
             tvSwitch.setOnClickListener {
                 isAuto = !isAuto
-                tvSwitch.setBackgroundResource(if (isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
-                tvSwitch.text = if (isAuto) "MANUAL" else "AUTO"
+                tvSwitch.setBackgroundResource(if (!isAuto) R.drawable.btn_turn_off else R.drawable.btn_turn_on)
+                tvSwitch.text = if (!isAuto) "MANUAL" else "AUTO"
                 clConsoles.visibility = if (isAuto) View.GONE else View.VISIBLE
                 changeButtonStyle(btnType)
 
@@ -188,37 +194,41 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
             tvOff.setOnClickListener {
                 btnType = BtnType.OFF
                 changeButtonStyle(btnType)
-                val json = Gson().toJson(Data(false, false, 0, count))
-                mqttManager?.publish(json.toString())
+                isTurnOn = false
+                speed = 0
             }
             tvLow.setOnClickListener {
                 btnType = BtnType.LOW
                 changeButtonStyle(btnType)
+                isTurnOn = true
                 speed = 150
             }
             tvMid.setOnClickListener {
                 btnType = BtnType.MID
                 changeButtonStyle(btnType)
+                isTurnOn = true
                 speed = 200
             }
             tvHigh.setOnClickListener {
                 btnType = BtnType.HIGH
                 changeButtonStyle(btnType)
+                isTurnOn = true
                 speed = 255
             }
             tvOk.setOnClickListener {
                   if (!edTimer.text.isNullOrEmpty() && edTimer.text.isNotBlank()) {
                       val p: Pattern = Pattern.compile("[0-9]*")
                       val m: Matcher = p.matcher(edTimer.text.toString())
-                      if (m.matches()) {
+                      if (m.matches() && edTimer.text.toString() != "0") {
                           Toast.makeText(mActivity, "計時開始", Toast.LENGTH_SHORT).show()
                           time = edTimer.text.toString()
                           timerIntent.putExtra(TimerService.TIME_EXTRA, 0)
                           mActivity.startService(timerIntent)
                           edTimer.isEnabled = false
-                      } else Toast.makeText(mActivity, "僅能輸入數字", Toast.LENGTH_SHORT).show()
+                          tvOk.isEnabled = false
+                      } else Toast.makeText(mActivity, "無法輸入數字 0 或是其他文字", Toast.LENGTH_SHORT).show()
                   } else {
-                      val json = Gson().toJson(Data(false, true, speed, count))
+                      val json = Gson().toJson(Data(false, isTurnOn, speed, count))
                       mqttManager?.publish(json.toString())
                   }
             }

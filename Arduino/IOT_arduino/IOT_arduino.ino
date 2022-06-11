@@ -9,6 +9,7 @@ boolean isAuto = true;
 int speeds = 0;
 int state = LOW;
 int state2 = LOW;
+int state3 = LOW;
 int val = 0;
 
 int motorPin = 12;
@@ -16,7 +17,7 @@ int PIRSensorIn = 16;
 int PIRSensorOut = 5;
 
 // WiFi
-const char *ssid = "1234"; // Enter your WiFi name
+const char *ssid = "YuHao"; // Enter your WiFi name
 const char *password = "jk871124";  // Enter WiFi password
 const char *client_id = "client-test";
    
@@ -60,12 +61,12 @@ void setup() {
         }
     }
     // publish and subscribe
-    doc["isTurnOn"] = false;
-    doc["speed"] = 0;
-    doc["count"] = 0;
-    char json[256];
-    serializeJson(doc, json);
-    client.publish(topic, json);
+//    doc["isTurnOn"] = false;
+//    doc["speed"] = 0;
+//    doc["count"] = 0;
+//    char json[256];
+//    serializeJson(doc, json);
+//    client.publish(topic, json);
     client.subscribe(topic);
 }
    

@@ -2,7 +2,9 @@ package com.example.iot_finalproject.manager
 
 import android.content.Context
 import android.util.Log
+import com.example.iot_finalproject.fragment.FirstFragment
 import com.example.iot_finalproject.protocols.UIUpdaterInterface
+import com.google.gson.Gson
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 import java.util.*
@@ -89,6 +91,8 @@ class MQTTmanager (val connectionParams: MQTTConnectionParams, val context: Cont
                 override fun onSuccess(asyncActionToken:IMqttToken) {
                     Log.w("Mqtt", "Subscription!")
                     uiUpdater?.updateStatusViewWith("Subscribed to Topic")
+                    val json = Gson().toJson(FirstFragment.Data(true, false, 0, 0))
+                    publish(json)
                 }
                 override fun onFailure(asyncActionToken:IMqttToken, exception:Throwable) {
                     Log.w("Mqtt", "Subscription fail!")
