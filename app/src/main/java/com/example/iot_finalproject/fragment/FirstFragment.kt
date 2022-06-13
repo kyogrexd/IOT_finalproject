@@ -135,11 +135,20 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 else R.color.red_FF0000))
 
             tvFan.text = if(isTurnOn) "風扇狀態: ON" else "風扇狀態: OFF"
-            tvSpeed.text = when (btnType) {
-                BtnType.LOW -> "風扇強度: 弱"
-                BtnType.MID -> "風扇強度: 中"
-                BtnType.HIGH -> "風扇強度: 強"
-                else -> "風扇強度: OFF"
+            tvSpeed.text = if (!isAuto) {
+                when (btnType) {
+                    BtnType.LOW -> "風扇強度: 弱"
+                    BtnType.MID -> "風扇強度: 中"
+                    BtnType.HIGH -> "風扇強度: 強"
+                    else -> "風扇強度: OFF"
+                }
+            } else {
+                when (speed) {
+                    150 -> "風扇強度: 弱"
+                    200 -> "風扇強度: 中"
+                    255 -> "風扇強度: 強"
+                    else -> "風扇強度: OFF"
+                }
             }
         }
     }
@@ -187,6 +196,13 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 clConsoles.visibility = if (isAuto) View.GONE else View.VISIBLE
                 changeButtonStyle(btnType)
 
+                if (isAuto) {
+                    if (count in 0..2) speed = 0
+                    else if (count in 3..4) speed = 150
+                    else if (count in 5..6) speed = 200
+                    else speed = 255
+                }
+
                 val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
                 mqttManager?.publish(json.toString())
             }
@@ -216,6 +232,12 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 speed = 255
             }
             tvOk.setOnClickListener {
+                speed = when (btnType) {
+                    BtnType.LOW -> 150
+                    BtnType.MID -> 200
+                    BtnType.HIGH -> 255
+                    else -> 0
+                }
                   if (!edTimer.text.isNullOrEmpty() && edTimer.text.isNotBlank()) {
                       val p: Pattern = Pattern.compile("[0-9]*")
                       val m: Matcher = p.matcher(edTimer.text.toString())
