@@ -135,21 +135,35 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 else R.color.red_FF0000))
 
             tvFan.text = if(isTurnOn) "風扇狀態: ON" else "風扇狀態: OFF"
-            tvSpeed.text = if (!isAuto) {
-                when (btnType) {
-                    BtnType.LOW -> "風扇強度: 弱"
-                    BtnType.MID -> "風扇強度: 中"
-                    BtnType.HIGH -> "風扇強度: 強"
-                    else -> "風扇強度: OFF"
-                }
-            } else {
-                when (speed) {
+//                if (isAuto) {
+//                if(isTurnOn) "風扇狀態: ON" else "風扇狀態: OFF"
+//            } else {
+//                when (btnType) {
+//                    BtnType.OFF -> "風扇狀態: OFF"
+//                    else -> "風扇狀態: ON"
+//                }
+//            }
+            tvSpeed.text = when (speed) {
                     150 -> "風扇強度: 弱"
                     200 -> "風扇強度: 中"
                     255 -> "風扇強度: 強"
                     else -> "風扇強度: OFF"
                 }
-            }
+//                if (!isAuto) {
+//                when (btnType) {
+//                    BtnType.LOW -> "風扇強度: 弱"
+//                    BtnType.MID -> "風扇強度: 中"
+//                    BtnType.HIGH -> "風扇強度: 強"
+//                    else -> "風扇強度: OFF"
+//                }
+//            } else {
+//                when (speed) {
+//                    150 -> "風扇強度: 弱"
+//                    200 -> "風扇強度: 中"
+//                    255 -> "風扇強度: 強"
+//                    else -> "風扇強度: OFF"
+//                }
+//            }
         }
     }
 
@@ -197,10 +211,22 @@ class FirstFragment: Fragment(), UIUpdaterInterface {
                 changeButtonStyle(btnType)
 
                 if (isAuto) {
-                    if (count in 0..2) speed = 0
-                    else if (count in 3..4) speed = 150
-                    else if (count in 5..6) speed = 200
-                    else speed = 255
+                    if (count in 0..2) {
+                        speed = 0
+                        isTurnOn = false
+                    }
+                    else if (count in 3..4) {
+                        speed = 150
+                        isTurnOn = true
+                    }
+                    else if (count in 5..6) {
+                        speed = 200
+                        isTurnOn = true
+                    }
+                    else {
+                        speed = 255
+                        isTurnOn = true
+                    }
                 }
 
                 val json = Gson().toJson(Data(isAuto, isTurnOn, speed, count))
